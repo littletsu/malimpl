@@ -88,6 +88,15 @@ export default class Interpreter {
                 
                 case "eval":
                    return this.eval(this.eval(list[1], env), env);
+                
+                case "quote":
+                    return list[1];
+                case "quasiquoteexpand":
+                    if(list.length != 2) throw new Error("Invalid number of arguments to quasiquote");
+                    return this.quasiquote(list[1]);
+                case "quasiquote":
+                    if(list.length != 2) throw new Error("Invalid number of arguments to quasiquote");
+                    return this.eval(this.quasiquote(list[1]), env);
             }
             
             if(list[0].type === "Function") {
@@ -102,6 +111,33 @@ export default class Interpreter {
             
         };
         return this.eval_ast(ast, env);
+    }
+
+    private static quasiquote(ast: InstanceType): InstanceType {
+        switch(ast.type) {
+            case "List": 
+                const list = ast.value as List;
+                if(list.length === 0) return ast;
+                if(list[0].value === "unquote") return list[1];
+                    
+                const concat: List = [];
+                let listElements: List = [];
+                for(let el of list) {
+                    if(el.type === "List" && (el.value as List)[0].value === "splice-unquote") {
+                        concat.push(Instance(listElements, "List"));
+                        listElements = [];
+                        concat.push((el.value as List)[1]);
+                        continue;
+                    }
+                    listElements.push(this.quasiquote(el)); 
+                }
+                if(listElements.length != 0) concat.push(Instance(listElements, "List"));
+                return Instance([Instance("concat", "Symbol"), ...concat], "List");
+            case "Symbol":
+                return Instance([Instance("quote", "Symbol"), ast], "List");
+            default:
+                return ast;
+        }
     }
 
     private static applyList(evaluatedList: List) {

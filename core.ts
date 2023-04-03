@@ -1,7 +1,7 @@
 import Printer from "./printer";
 import Reader from "./reader";
 import fs from 'fs';
-import { Namespace, InstanceType, Instance, EnvFunctionInstance, nil, List, yes } from "./types";
+import { Namespace, InstanceType, Instance, EnvFunctionInstance, nil, List, yes, InstancedType } from "./types";
 
 const eq = (a: InstanceType, b: InstanceType) => {
     if(a.type !== b.type) return nil;
@@ -43,7 +43,7 @@ const core: Namespace = {
     }),
 
     list: EnvFunctionInstance((...args: InstanceType[]) => Instance(args, "List")),
-    cons: EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance([...a.value as List, ...b.value as List], "List")),
+    cons: EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance([...a.value as List, b], "List")),
     concat: EnvFunctionInstance((...lists: InstanceType[]) => {
         const newList = [];
         for(let list of lists) {
@@ -67,7 +67,14 @@ const core: Namespace = {
     'read-str': EnvFunctionInstance((str: InstanceType) => Reader.read_str(str.value as string)),
     slurp: EnvFunctionInstance((str: InstanceType) => Instance(fs.readFileSync(str.value as string, 'utf8'), "String")),
 
-
+    js: EnvFunctionInstance((exp: InstanceType) => {
+        let evaled = eval(exp.value as string);
+        let type: string = typeof evaled;
+        type = type[0].toUpperCase() + type.substring(1);
+        if(type === "Object") type = "List";
+        if(type === "Undefined") (type = "Boolean", evaled = false);
+        return Instance(evaled, type as InstancedType);
+    })
 }
 
 export default core;

@@ -95,6 +95,16 @@ class Interpreter {
                     return this.eval(result, env);
                 case "eval":
                     return this.eval(this.eval(list[1], env), env);
+                case "quote":
+                    return list[1];
+                case "quasiquoteexpand":
+                    if (list.length != 2)
+                        throw new Error("Invalid number of arguments to quasiquote");
+                    return this.quasiquote(list[1]);
+                case "quasiquote":
+                    if (list.length != 2)
+                        throw new Error("Invalid number of arguments to quasiquote");
+                    return this.eval(this.quasiquote(list[1]), env);
             }
             if (list[0].type === "Function") {
                 return this.applyList(list);
@@ -107,6 +117,34 @@ class Interpreter {
         }
         ;
         return this.eval_ast(ast, env);
+    }
+    static quasiquote(ast) {
+        switch (ast.type) {
+            case "List":
+                const list = ast.value;
+                if (list.length === 0)
+                    return ast;
+                if (list[0].value === "unquote")
+                    return list[1];
+                const concat = [];
+                let listElements = [];
+                for (let el of list) {
+                    if (el.type === "List" && el.value[0].value === "splice-unquote") {
+                        concat.push((0, types_1.Instance)(listElements, "List"));
+                        listElements = [];
+                        concat.push(el.value[1]);
+                        continue;
+                    }
+                    listElements.push(this.quasiquote(el));
+                }
+                if (listElements.length != 0)
+                    concat.push((0, types_1.Instance)(listElements, "List"));
+                return (0, types_1.Instance)([(0, types_1.Instance)("concat", "Symbol"), ...concat], "List");
+            case "Symbol":
+                return (0, types_1.Instance)([(0, types_1.Instance)("quote", "Symbol"), ast], "List");
+            default:
+                return ast;
+        }
     }
     static applyList(evaluatedList) {
         const listFunction = evaluatedList[0].value;
