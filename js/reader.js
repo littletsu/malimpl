@@ -78,17 +78,15 @@ class Reader {
         switch (atom) {
             case 'true':
                 return (0, types_1.Instance)(true, "Boolean");
-            case 'false':
-                return (0, types_1.Instance)(false, "Boolean");
             case 'nil':
+            case 'false':
                 return (0, types_1.Instance)(false, "Boolean");
         }
         return (0, types_1.Instance)(atom, "Symbol");
     }
     static reader_macro(reader, symbol) {
         reader.next();
-        let form = this.read_form(reader);
-        return (0, types_1.Instance)([(0, types_1.Instance)(symbol, "Symbol"), form], "List");
+        return (0, types_1.Instance)([(0, types_1.Instance)(symbol, "Symbol"), this.read_form(reader)], "List");
     }
     static read_form(reader) {
         const token = reader.peek();

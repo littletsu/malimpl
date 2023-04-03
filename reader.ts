@@ -86,9 +86,8 @@ export default class Reader {
         switch(atom) {
             case 'true':
                 return Instance(true, "Boolean");
-            case 'false':
-                return Instance(false, "Boolean");
             case 'nil':
+            case 'false':
                 return Instance(false, "Boolean");
         }
         return Instance(atom, "Symbol");
@@ -96,8 +95,7 @@ export default class Reader {
 
     static reader_macro(reader: TokenReader, symbol: string): InstanceType {
         reader.next();
-        let form = this.read_form(reader);
-        return Instance([Instance(symbol, "Symbol"), form], "List");
+        return Instance([Instance(symbol, "Symbol"), this.read_form(reader)], "List");
     }
 
     static read_form(reader: TokenReader): InstanceType {

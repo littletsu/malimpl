@@ -47,6 +47,7 @@ const core = {
         return types_1.nil;
     }),
     list: (0, types_1.EnvFunctionInstance)((...args) => (0, types_1.Instance)(args, "List")),
+    vec: (0, types_1.EnvFunctionInstance)((list) => (0, types_1.Instance)(list.value, "Vector")),
     cons: (0, types_1.EnvFunctionInstance)((a, b) => (0, types_1.Instance)([...a.value, b], "List")),
     concat: (0, types_1.EnvFunctionInstance)((...lists) => {
         const newList = [];
@@ -67,6 +68,8 @@ const core = {
     '<=': (0, types_1.EnvFunctionInstance)((a, b) => (0, types_1.Instance)(a.value <= b.value, "Boolean")),
     'read-str': (0, types_1.EnvFunctionInstance)((str) => reader_1.default.read_str(str.value)),
     slurp: (0, types_1.EnvFunctionInstance)((str) => (0, types_1.Instance)(fs_1.default.readFileSync(str.value, 'utf8'), "String")),
+    'splice-unquote': (0, types_1.EnvFunctionInstance)(() => { throw new SyntaxError("Cannot splice-unquote outside of quote"); }),
+    unquote: (0, types_1.EnvFunctionInstance)(() => { throw new SyntaxError("Cannot unquote outside of quote"); }),
     js: (0, types_1.EnvFunctionInstance)((exp) => {
         let evaled = eval(exp.value);
         let type = typeof evaled;

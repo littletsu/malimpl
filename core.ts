@@ -43,6 +43,7 @@ const core: Namespace = {
     }),
 
     list: EnvFunctionInstance((...args: InstanceType[]) => Instance(args, "List")),
+    vec: EnvFunctionInstance((list: InstanceType) => Instance(list.value, "Vector")),
     cons: EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance([...a.value as List, b], "List")),
     concat: EnvFunctionInstance((...lists: InstanceType[]) => {
         const newList = [];
@@ -66,6 +67,9 @@ const core: Namespace = {
 
     'read-str': EnvFunctionInstance((str: InstanceType) => Reader.read_str(str.value as string)),
     slurp: EnvFunctionInstance((str: InstanceType) => Instance(fs.readFileSync(str.value as string, 'utf8'), "String")),
+
+    'splice-unquote': EnvFunctionInstance(() => { throw new SyntaxError("Cannot splice-unquote outside of quote") }),
+    unquote: EnvFunctionInstance(() => { throw new SyntaxError("Cannot unquote outside of quote") }),
 
     js: EnvFunctionInstance((exp: InstanceType) => {
         let evaled = eval(exp.value as string);
