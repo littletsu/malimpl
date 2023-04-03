@@ -12,8 +12,8 @@ class TokenReader {
         return this.tokens[this.i] ?? null;
     }
 
-    public next() {
-        return this.tokens[++this.i] ?? null;
+    public next(count: number=1) {
+        return this.tokens[this.i+=count] ?? null;
     }
 }
 
@@ -94,6 +94,12 @@ export default class Reader {
         return Instance(atom, "Symbol");
     }
 
+    static reader_macro(reader: TokenReader, symbol: string): InstanceType {
+        reader.next();
+        let form = this.read_form(reader);
+        return Instance([Instance(symbol, "Symbol"), form], "List");
+    }
+
     static read_form(reader: TokenReader): InstanceType {
         const token = reader.peek();
         if(!token) return EOF;
@@ -110,6 +116,13 @@ export default class Reader {
                 return this.read_hashmap(reader);
             case '}':
                 throw new SyntaxError("Unexpected \"}\"");
+            case "'":
+                return this.reader_macro(reader, "quote");
+            case '`':
+                return this.reader_macro(reader, "quasiquote");
+            case "~":
+                if(token[1] === "@") return this.reader_macro(reader, "splice-unquote");
+                return this.reader_macro(reader, "unquote");
             default:
                 return this.read_atom(reader);
                 

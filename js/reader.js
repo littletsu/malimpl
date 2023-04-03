@@ -10,9 +10,9 @@ class TokenReader {
         var _a;
         return (_a = this.tokens[this.i]) !== null && _a !== void 0 ? _a : null;
     }
-    next() {
+    next(count = 1) {
         var _a;
-        return (_a = this.tokens[++this.i]) !== null && _a !== void 0 ? _a : null;
+        return (_a = this.tokens[this.i += count]) !== null && _a !== void 0 ? _a : null;
     }
 }
 class Reader {
@@ -85,6 +85,11 @@ class Reader {
         }
         return (0, types_1.Instance)(atom, "Symbol");
     }
+    static reader_macro(reader, symbol) {
+        reader.next();
+        let form = this.read_form(reader);
+        return (0, types_1.Instance)([(0, types_1.Instance)(symbol, "Symbol"), form], "List");
+    }
     static read_form(reader) {
         const token = reader.peek();
         if (!token)
@@ -102,6 +107,14 @@ class Reader {
                 return this.read_hashmap(reader);
             case '}':
                 throw new SyntaxError("Unexpected \"}\"");
+            case "'":
+                return this.reader_macro(reader, "quote");
+            case '`':
+                return this.reader_macro(reader, "quasiquote");
+            case "~":
+                if (token[1] === "@")
+                    return this.reader_macro(reader, "splice-unquote");
+                return this.reader_macro(reader, "unquote");
             default:
                 return this.read_atom(reader);
         }
