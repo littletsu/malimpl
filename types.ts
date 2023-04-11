@@ -6,18 +6,22 @@ export interface InstanceType {
     type: InstancedType,
     value: Type
 }
+export type EnvFunction = (...args: InstanceType[]) => InstanceType;
+export interface FunctionValue {
+    fun: EnvFunction,
+    isMacro: boolean
+}
 export function Instance(value: Type, type: InstancedType): InstanceType {
     return {
         type,
         value
     };
 }
-export function EnvFunctionInstance (f: EnvFunction) {
-    return Instance(f, "Function");
+export function FunctionInstance (fun: EnvFunction, isMacro: boolean = false) {
+    return Instance({fun, isMacro}, "Function");
 }
-export type EnvFunction = (...args: InstanceType[]) => InstanceType;
 export interface Namespace {
     [symbol: string]: InstanceType;
 }
 export type List = Array<InstanceType>;
-export type Type = Array<Type> | Number | string | boolean | List | EnvFunction;
+export type Type = Array<Type> | Number | string | boolean | List | FunctionValue;

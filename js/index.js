@@ -34,6 +34,7 @@ for (let symbol of Object.keys(core_1.default)) {
 env.set("argv", (0, types_1.Instance)(process.argv.map(value => (0, types_1.Instance)(value, "String")), "List"));
 interpreter_1.default.rep(`(def! not (fn* (a) (if a false true)))`, env);
 interpreter_1.default.rep(`(def! load-file (fn* (f) (eval (read-str (str "(do " (slurp f) " nil)")))))`, env);
+interpreter_1.default.rep(`(defmacro! uwu (fn* () '(list)))`, env);
 if (args.e)
     interpreter_1.default.rep(args.e, env);
 const r = node_repl_1.default.start({ prompt: 'user> ', eval: readline, writer: writer });

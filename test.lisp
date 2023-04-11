@@ -1,0 +1,1 @@
+(defmacro! test (fn* (a b) `(do (prn ~a) (prn ~b))))

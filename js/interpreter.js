@@ -37,11 +37,48 @@ class Interpreter {
         }
         return ast;
     }
+    static getMacroCall(ast, env) {
+        if (ast.type !== "List")
+            return false;
+        const list = ast.value;
+        if (list[0].type !== "Symbol")
+            return false;
+        let symbol;
+        try {
+            symbol = env.get(list[0].value);
+        }
+        catch (err) {
+            if (err.name === "ReferenceError")
+                return false;
+            throw err;
+        }
+        if (symbol.type !== "Function")
+            return false;
+        const funval = symbol.value;
+        if (!funval.isMacro)
+            return false;
+        return funval.fun;
+    }
+    static macroexpand(ast, env) {
+        let macroast = ast;
+        let macrofun = this.getMacroCall(macroast, env);
+        while (macrofun) {
+            macroast = macrofun(...macroast.value.slice(1));
+            macrofun = this.getMacroCall(macroast, env);
+        }
+        return macroast;
+    }
     static eval(ast, env) {
+        let evalast = ast;
         if (ast.type === "List") {
-            const list = ast.value;
+            let list = evalast.value;
             if (list.length === 0)
                 return ast;
+            const expanded = this.macroexpand(ast, env);
+            if (expanded.type !== "List")
+                return this.eval_ast(expanded, env);
+            evalast = expanded;
+            list = expanded.value;
             switch (list[0].value) {
                 case "def!":
                     if (list.length !== 3)
@@ -51,6 +88,20 @@ class Interpreter {
                     const evaled = this.eval(list[2], env);
                     env.set(list[1].value, evaled);
                     return evaled;
+                case "defmacro!":
+                    if (list.length !== 3)
+                        throw new Error("Invalid number of arguments to defmacro!");
+                    if (list[1].type !== "Symbol")
+                        throw new TypeError("defmacro! key must be a Symbol");
+                    const evaledValue = this.eval(list[2], env);
+                    if (evaledValue.type !== "Function")
+                        throw new TypeError("defmacro! value must be a Function");
+                    const macroInstance = (0, types_1.FunctionInstance)(evaledValue.value.fun, true);
+                    const evaledMacro = this.eval(macroInstance, env);
+                    env.set(list[1].value, evaledMacro);
+                    return evaledMacro;
+                case "macroexpand":
+                    return this.macroexpand((0, types_1.Instance)(list.slice(1), "List"), env);
                 case "let*":
                     if (list.length !== 3)
                         throw new Error("Invalid number of arguments to let*");
@@ -79,10 +130,10 @@ class Interpreter {
                     }
                     const binds = list[1].value;
                     const fnAst = list[2];
-                    return (0, types_1.Instance)((...args) => {
+                    return (0, types_1.FunctionInstance)((...args) => {
                         const fnEnv = new env_1.default(env, binds, args);
                         return this.eval(fnAst, fnEnv);
-                    }, "Function");
+                    });
                 case "do":
                     const doList = list.slice(1);
                     const evaluated = doList.map(el => this.eval(el, env));
@@ -106,17 +157,17 @@ class Interpreter {
                         throw new Error("Invalid number of arguments to quasiquote");
                     return this.eval(this.quasiquote(list[1]), env);
             }
-            if (list[0].type === "Function") {
-                return this.applyList(list);
-            }
-            const evaluated = this.eval_ast(ast, env);
+            // if(list[0].type === "Function") {
+            //     return this.applyList(list);
+            // }
+            const evaluated = this.eval_ast(evalast, env);
             const evaluatedList = evaluated.value;
             if (evaluatedList[0].type === "Function") {
                 return this.applyList(evaluatedList);
             }
         }
         ;
-        return this.eval_ast(ast, env);
+        return this.eval_ast(evalast, env);
     }
     static quasiquote(ast) {
         switch (ast.type) {
@@ -147,7 +198,7 @@ class Interpreter {
         }
     }
     static applyList(evaluatedList) {
-        const listFunction = evaluatedList[0].value;
+        const listFunction = evaluatedList[0].value.fun;
         return listFunction(...evaluatedList.slice(1));
     }
     static print(exp) {

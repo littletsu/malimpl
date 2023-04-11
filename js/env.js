@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const types_1 = require("./types");
 class Env {
     constructor(outer, binds, exprs) {
+        var _a;
         this.outer = outer;
         this.data = {};
         if (!binds || !exprs)
@@ -14,8 +15,7 @@ class Env {
                 this.data[key.slice(0, -1)] = (0, types_1.Instance)(exprs.slice(i), "List");
                 break;
             }
-            if (exprs[i])
-                this.data[key] = exprs[i];
+            this.data[key] = (_a = exprs[i]) !== null && _a !== void 0 ? _a : types_1.nil;
         }
     }
     set(symbol, value) {

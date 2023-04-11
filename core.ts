@@ -1,7 +1,7 @@
 import Printer from "./printer";
 import Reader from "./reader";
 import fs from 'fs';
-import { Namespace, InstanceType, Instance, EnvFunctionInstance, nil, List, yes, InstancedType } from "./types";
+import { Namespace, InstanceType, Instance, FunctionInstance, nil, List, yes, InstancedType } from "./types";
 
 const eq = (a: InstanceType, b: InstanceType) => {
     if(a.type !== b.type) return nil;
@@ -19,33 +19,33 @@ const eq = (a: InstanceType, b: InstanceType) => {
 }
 
 const core: Namespace = {
-    'typeof': EnvFunctionInstance((exp: InstanceType) => Instance(':' + exp.type.toUpperCase(), "Keyword")),
+    'typeof': FunctionInstance((exp: InstanceType) => Instance(':' + exp.type.toUpperCase(), "Keyword")),
     
-    '+': EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) + (b.value as number), "Number")),
-    '-': EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) - (b.value as number), "Number")),
-    '*': EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) * (b.value as number), "Number")),
-    '/': EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) / (b.value as number), "Number")),
-    '%': EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) % (b.value as number), "Number")),
+    '+': FunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) + (b.value as number), "Number")),
+    '-': FunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) - (b.value as number), "Number")),
+    '*': FunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) * (b.value as number), "Number")),
+    '/': FunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) / (b.value as number), "Number")),
+    '%': FunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) % (b.value as number), "Number")),
 
-    'prn-str': EnvFunctionInstance((...args: InstanceType[]) => {
+    'prn-str': FunctionInstance((...args: InstanceType[]) => {
         return Instance(args.map(arg => Printer.pr_str(arg, true)).join(' '), "String");
     }),
-    str: EnvFunctionInstance((...args: InstanceType[]) => {
+    str: FunctionInstance((...args: InstanceType[]) => {
         return Instance(args.map(arg => Printer.pr_str(arg, false)).join(''), "String");
     }),
-    prn: EnvFunctionInstance((...args: InstanceType[]) => {
+    prn: FunctionInstance((...args: InstanceType[]) => {
         console.log(args.map(arg => Printer.pr_str(arg, true)).join(' '));
         return nil;
     }),
-    println: EnvFunctionInstance((...args: InstanceType[]) => {
+    println: FunctionInstance((...args: InstanceType[]) => {
         console.log(args.map(arg => Printer.pr_str(arg, false)).join(' '));
         return nil;
     }),
 
-    list: EnvFunctionInstance((...args: InstanceType[]) => Instance(args, "List")),
-    vec: EnvFunctionInstance((list: InstanceType) => Instance(list.value, "Vector")),
-    cons: EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance([...a.value as List, b], "List")),
-    concat: EnvFunctionInstance((...lists: InstanceType[]) => {
+    list: FunctionInstance((...args: InstanceType[]) => Instance(args, "List")),
+    vec: FunctionInstance((list: InstanceType) => Instance(list.value, "Vector")),
+    cons: FunctionInstance((a: InstanceType, b: InstanceType) => Instance([...a.value as List, b], "List")),
+    concat: FunctionInstance((...lists: InstanceType[]) => {
         const newList = [];
         for(let list of lists) {
             for(let el of list.value as List) {
@@ -54,24 +54,24 @@ const core: Namespace = {
         }
         return Instance(newList, "List");
     }),
-    count: EnvFunctionInstance((list: InstanceType) => Instance((list.value as List).length, "Number")),
+    count: FunctionInstance((list: InstanceType) => Instance((list.value as List).length, "Number")),
 
-    'list?': EnvFunctionInstance((exp: InstanceType) => Instance(exp.type === "List", "Boolean")),
-    'empty?': EnvFunctionInstance((list: InstanceType) => Instance((list.value as List).length === 0, "Boolean")),
+    'list?': FunctionInstance((exp: InstanceType) => Instance(exp.type === "List", "Boolean")),
+    'empty?': FunctionInstance((list: InstanceType) => Instance((list.value as List).length === 0, "Boolean")),
     
-    '=': EnvFunctionInstance(eq),
-    '>': EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) > (b.value as number), "Boolean")),
-    '<': EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) < (b.value as number), "Boolean")),
-    '>=': EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) >= (b.value as number), "Boolean")),
-    '<=': EnvFunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) <= (b.value as number), "Boolean")),
+    '=': FunctionInstance(eq),
+    '>': FunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) > (b.value as number), "Boolean")),
+    '<': FunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) < (b.value as number), "Boolean")),
+    '>=': FunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) >= (b.value as number), "Boolean")),
+    '<=': FunctionInstance((a: InstanceType, b: InstanceType) => Instance((a.value as number) <= (b.value as number), "Boolean")),
 
-    'read-str': EnvFunctionInstance((str: InstanceType) => Reader.read_str(str.value as string)),
-    slurp: EnvFunctionInstance((str: InstanceType) => Instance(fs.readFileSync(str.value as string, 'utf8'), "String")),
+    'read-str': FunctionInstance((str: InstanceType) => Reader.read_str(str.value as string)),
+    slurp: FunctionInstance((str: InstanceType) => Instance(fs.readFileSync(str.value as string, 'utf8'), "String")),
 
-    'splice-unquote': EnvFunctionInstance(() => { throw new SyntaxError("Cannot splice-unquote outside of quote") }),
-    unquote: EnvFunctionInstance(() => { throw new SyntaxError("Cannot unquote outside of quote") }),
+    'splice-unquote': FunctionInstance(() => { throw new SyntaxError("Cannot splice-unquote outside of quote") }),
+    unquote: FunctionInstance(() => { throw new SyntaxError("Cannot unquote outside of quote") }),
 
-    js: EnvFunctionInstance((exp: InstanceType) => {
+    js: FunctionInstance((exp: InstanceType) => {
         let evaled = eval(exp.value as string);
         let type: string = typeof evaled;
         type = type[0].toUpperCase() + type.substring(1);

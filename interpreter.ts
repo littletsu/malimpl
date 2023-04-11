@@ -1,7 +1,7 @@
 import Printer from "./printer";
 import Reader from "./reader";
 import Env from './env'
-import { EnvFunction, Instance, InstanceType, List, nil, Type } from "./types";
+import { EnvFunction, FunctionInstance, FunctionValue, Instance, InstanceType, List, nil, Type } from "./types";
 
 export default class Interpreter {
     static read(str: string) {
@@ -33,11 +33,46 @@ export default class Interpreter {
         return ast;
     }
 
+    private static getMacroCall(ast: InstanceType, env: Env): EnvFunction | false {
+        if(ast.type !== "List") return false;
+        const list = ast.value as List;
+        if(list[0].type !== "Symbol") return false;
+        let symbol;
+        try {
+            symbol = env.get(list[0].value as string);
+        } catch(err) {
+            if((err as Error).name === "ReferenceError") return false;
+            throw err;
+        }
+        if(symbol.type !== "Function") return false;
+        const funval = (symbol.value as FunctionValue);
+        if(!funval.isMacro) return false;
+        return funval.fun;
+    }
+
+    private static macroexpand(ast: InstanceType, env: Env): InstanceType {
+        let macroast = ast;
+        let macrofun = this.getMacroCall(macroast, env);
+        while(macrofun) {
+            macroast = macrofun(...(macroast.value as List).slice(1));
+            macrofun = this.getMacroCall(macroast, env);
+        }
+        return macroast;
+    }
+
     static eval(ast: InstanceType, env: Env): InstanceType {
+        let evalast = ast;
         if(ast.type === "List") {
-            const list = ast.value as List;
+            
+            let list = evalast.value as List;
             if(list.length === 0) return ast;
 
+            const expanded = this.macroexpand(ast, env);
+            
+            if(expanded.type !== "List") return this.eval_ast(expanded, env);
+            evalast = expanded;
+            list = expanded.value as List;
+            
             switch(list[0].value) {
                 case "def!":
                     if(list.length !== 3) throw new Error("Invalid number of arguments to def!");
@@ -45,6 +80,21 @@ export default class Interpreter {
                     const evaled = this.eval(list[2], env);
                     env.set(list[1].value as string, evaled);
                     return evaled;
+                
+                case "defmacro!":
+                    if(list.length !== 3) throw new Error("Invalid number of arguments to defmacro!");
+                    if(list[1].type !== "Symbol") throw new TypeError("defmacro! key must be a Symbol");
+                    const evaledValue = this.eval(list[2], env);
+                    if(evaledValue.type !== "Function") throw new TypeError("defmacro! value must be a Function");
+                    
+                    const macroInstance = FunctionInstance((evaledValue.value as FunctionValue).fun, true);
+                    const evaledMacro = this.eval(macroInstance, env);
+                    
+                    env.set(list[1].value as string, evaledMacro);
+                    return evaledMacro;
+                
+                case "macroexpand":
+                    return this.macroexpand(Instance(list.slice(1), "List"), env);
                 
                 case "let*":
                     if(list.length !== 3) throw new Error("Invalid number of arguments to let*");
@@ -61,7 +111,7 @@ export default class Interpreter {
                     }
 
                     return this.eval(list[2], letEnv);
-
+                
                 case "fn*":
                     if(list.length !== 3) throw new Error("Invalid number of arguments to fn*");
                     if(list[1].type !== "List") throw new TypeError("fn* list of arguments must be a list of Symbols");
@@ -70,10 +120,10 @@ export default class Interpreter {
                     }
                     const binds = list[1].value as List;
                     const fnAst = list[2];
-                    return Instance((...args: InstanceType[]): InstanceType => {
+                    return FunctionInstance((...args: InstanceType[]): InstanceType => {
                         const fnEnv = new Env(env, binds, args);
                         return this.eval(fnAst, fnEnv);
-                    }, "Function");
+                    });
                 
                 case "do":
                     const doList = list.slice(1);
@@ -99,18 +149,18 @@ export default class Interpreter {
                     return this.eval(this.quasiquote(list[1]), env);
             }
             
-            if(list[0].type === "Function") {
-                return this.applyList(list);
-            }
+            // if(list[0].type === "Function") {
+            //     return this.applyList(list);
+            // }
 
-            const evaluated = this.eval_ast(ast, env);
+            const evaluated = this.eval_ast(evalast, env);
             const evaluatedList = evaluated.value as List;
             if(evaluatedList[0].type === "Function") {
                return this.applyList(evaluatedList);
             }
             
         };
-        return this.eval_ast(ast, env);
+        return this.eval_ast(evalast, env);
     }
 
     private static quasiquote(ast: InstanceType): InstanceType {
@@ -141,7 +191,7 @@ export default class Interpreter {
     }
 
     private static applyList(evaluatedList: List) {
-        const listFunction = evaluatedList[0].value as EnvFunction;
+        const listFunction = (evaluatedList[0].value as FunctionValue).fun;
         return listFunction(...evaluatedList.slice(1));
     }
 

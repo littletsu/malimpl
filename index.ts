@@ -35,6 +35,7 @@ env.set("argv", Instance(process.argv.map(value => Instance(value, "String")), "
 
 Interpreter.rep(`(def! not (fn* (a) (if a false true)))`, env);
 Interpreter.rep(`(def! load-file (fn* (f) (eval (read-str (str "(do " (slurp f) " nil)")))))`, env);
+Interpreter.rep(`(defmacro! uwu (fn* () '(list)))`, env);
 
 if(args.e) Interpreter.rep(args.e as string, env);
 

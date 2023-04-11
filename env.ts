@@ -1,4 +1,4 @@
-import { Instance, InstanceType, List } from "./types";
+import { Instance, InstanceType, List, nil } from "./types";
 
 interface EnvData {
     [symbol: string]: InstanceType
@@ -21,7 +21,7 @@ export default class Env {
                 this.data[key.slice(0, -1)] = Instance(exprs.slice(i), "List");
                 break;
             }
-            if(exprs[i]) this.data[key] = exprs[i];
+            this.data[key] = exprs[i] ?? nil;
         }
         
     }
